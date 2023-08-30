@@ -1,6 +1,16 @@
+install.packages("haven")
 library(tidyverse)
+library(haven)
+
+# stata data --------------------------------------------------------------
+
+stata <- read_dta("data/Estimations.dta")
+
+# 解析 ----------------------------------------------------------------------
+
 
 #GDP データ加工
+gdp <- read_csv("data/WDI_2014_11.csv")
 df_gdp <- gdp %>% 
   filter(`Indicator Name` == "GDP (constant LCU)") %>% 
   select(`Country Name`, "1992":"2013") %>% 
@@ -19,7 +29,7 @@ df_Cl <- fiw %>%
   select(all_of(name_list)) %>% 
   select(cntry_name,"cl_1992":"cl_2013") %>%
   pivot_longer(cols = "cl_1992":"cl_2013", names_to = "year", values_to = "Cl") %>% 
-  mutate(year =  as.numeric(str_replace_all(df_Cl$year, pattern = "cl_", replacement = "")))  
+  mutate(year =  as.numeric(str_replace_all(year, pattern = "cl_", replacement = "")))  
   
 # df_Cl2 <- str_replace_all(df_Cl$year, pattern = "cl_", replacement = " ") str_replace_allはベクトルを返す
 
@@ -27,13 +37,13 @@ df_Pr <- fiw %>%
   select(all_of(name_list)) %>% 
   select(cntry_name,"pr_1992":"pr_2013") %>%
   pivot_longer(cols = "pr_1992":"pr_2013", names_to = "year", values_to = "Pr") %>% 
-  mutate(year =  as.numeric(str_replace_all(df_Pr$year, pattern = "pr_", replacement = "")))
+  mutate(year =  as.numeric(str_replace_all(year, pattern = "pr_", replacement = "")))
 
 df_Status <- fiw %>% 
   select(all_of(name_list)) %>% 
   select(cntry_name,"status_1992":"status_2013") %>%
   pivot_longer(cols = "status_1992":"status_2013", names_to = "year", values_to = "Status") %>% 
-  mutate(year =  as.numeric(str_replace_all(df_Status$year, pattern = "status_", replacement = "")))
+  mutate(year =  as.numeric(str_replace_all(year, pattern = "status_", replacement = "")))
 
 # df_fiw <- cbind(df_Cl, df_Pr, df_Status)　cbindよりもleft_joinを使う
 
@@ -46,13 +56,14 @@ df_fiw_binary <- read_csv("data/FIW_electoral_democracy.csv") %>%
   select(country, "democracy1992":"democracy2013") %>% 
   pivot_longer(cols = "democracy1992":"democracy2013", names_to = "year", values_to = "democracy") %>% 
   mutate(democracy = if_else(democracy == "Yes", 1, 0)) %>% 
-  mutate(year =  as.numeric(str_replace_all(df_fiw_binary$year, pattern = "democracy", replacement = "")))
+  mutate(year =  as.numeric(str_replace_all(year, pattern = "democracy", replacement = "")))
 
-setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL/data/DMSP-OLS")
-csv_list <- list.files(pattern = "*.csv")
-ntl <- do.call(rbind, lapply(csv_list, function(x) read.csv(x, header=TRUE, stringsAsFactors = FALSE)))
+# setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL/data/DMSP-OLS")
+# csv_list <- list.files(pattern = "*.csv")
+# ntl <- do.call(rbind, lapply(csv_list, function(x) read.csv(x, header=TRUE, stringsAsFactors = FALSE)))
+# 
+# setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL")
 
-setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL")
 ntl <- read_csv("data/ntl.csv")
 df_ntl <- ntl %>% 
   filter(between(year, 1992, 2013)) %>% 
@@ -81,14 +92,15 @@ df2 <- df %>%
   mutate(GDP_growth_avg = mean(GDP_growth, na.rm = TRUE)) %>% 
   mutate(ntl_growth_avg = mean(ntl_growth, na.rm = TRUE)) %>% 
   filter(year == 2013)
-  
-ggplot(df2, aes(x = ntl_growth_avg, y = GDP_growth_avg, color = democracy))+
-  geom_point()
 
+write.csv(df,"data/repdata.csv",row.names = F)
+write.csv(df2,"data/repdata_ave.csv",row.names = F)
 
-write(df, )
 
 # 可視化
 # shape = as.factor(democracy)
-# 
+# scale_shape_manual(values = c(0,2))
 
+ggplot(df2, aes(x = ntl_growth_avg, y = GDP_growth_avg, shape = as.factor(democracy)))+
+  scale_shape_manual(values = c(0,2))+
+  geom_point()
