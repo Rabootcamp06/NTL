@@ -89,4 +89,6 @@ ggplot(df2, aes(x = ntl_growth_avg, y = GDP_growth_avg, color = democracy))+
 write(df, )
 
 # 可視化
+# shape = as.factor(democracy)
+# 
 
