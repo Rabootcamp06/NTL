@@ -37,5 +37,56 @@ df_Status <- fiw %>%
 
 # df_fiw <- cbind(df_Cl, df_Pr, df_Status)　cbindよりもleft_joinを使う
 
+df_fiw <- left_join(df_Cl, df_Pr,  by = c("cntry_name","year")) %>% 
+  left_join(df_Status,by = c("cntry_name","year")) %>% 
+  mutate(Cl=as.numeric(Cl),Pr=as.numeric(Pr),Status=as.factor(Status)) %>% 
+  mutate(fiw = (Cl+Pr)/2 - 1)
 
+df_fiw_binary <- read_csv("data/FIW_electoral_democracy.csv") %>% 
+  select(country, "democracy1992":"democracy2013") %>% 
+  pivot_longer(cols = "democracy1992":"democracy2013", names_to = "year", values_to = "democracy") %>% 
+  mutate(democracy = if_else(democracy == "Yes", 1, 0)) %>% 
+  mutate(year =  as.numeric(str_replace_all(df_fiw_binary$year, pattern = "democracy", replacement = "")))
+
+setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL/data/DMSP-OLS")
+csv_list <- list.files(pattern = "*.csv")
+ntl <- do.call(rbind, lapply(csv_list, function(x) read.csv(x, header=TRUE, stringsAsFactors = FALSE)))
+
+setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL")
+ntl <- read_csv("data/ntl.csv")
+df_ntl <- ntl %>% 
+  filter(between(year, 1992, 2013)) %>% 
+  select(-c("gdp14_growth","cons_gdp"))
+
+df_gdp  <- df_gdp %>% 
+  rename("country" = `Country Name`) %>% 
+  mutate(year = as.numeric(year))
+
+df_fiw  <- df_fiw %>% 
+  rename("country" = `cntry_name`)
+df_ntl  <- df_ntl %>% 
+  rename("country" = `countryname`)
+
+df <- left_join(df_fiw_binary, df_gdp, by = c("country", "year")) %>% 
+  left_join(df_fiw, by = c("country", "year")) %>% 
+  left_join(df_ntl, by = c("country", "year")) %>% 
+  select(-Cl, -Pr) %>% 
+  mutate(logGDP = log(GDP)) %>% 
+  group_by(country) %>% 
+  mutate(GDP_growth = logGDP - dplyr::lag(logGDP, 1)) %>% 
+  mutate(ntl_growth = lndn13 - dplyr::lag(lndn13, 1))
+
+df2 <- df %>% 
+  group_by(country) %>% 
+  mutate(GDP_growth_avg = mean(GDP_growth, na.rm = TRUE)) %>% 
+  mutate(ntl_growth_avg = mean(ntl_growth, na.rm = TRUE)) %>% 
+  filter(year == 2013)
+  
+ggplot(df2, aes(x = ntl_growth_avg, y = GDP_growth_avg, color = democracy))+
+  geom_point()
+
+
+write(df, )
+
+# 可視化
 
