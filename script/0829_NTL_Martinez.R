@@ -52,6 +52,10 @@ df_fiw <- left_join(df_Cl, df_Pr,  by = c("cntry_name","year")) %>%
   mutate(Cl=as.numeric(Cl),Pr=as.numeric(Pr),Status=as.factor(Status)) %>% 
   mutate(fiw = (Cl+Pr)/2 - 1)
 
+nrow(is.na(df_fiw$Cl))
+
+sum(!is.na(Cl))
+
 df_fiw_binary <- read_csv("data/FIW_electoral_democracy.csv") %>% 
   select(country, "democracy1992":"democracy2013") %>% 
   pivot_longer(cols = "democracy1992":"democracy2013", names_to = "year", values_to = "democracy") %>% 
@@ -64,10 +68,20 @@ df_fiw_binary <- read_csv("data/FIW_electoral_democracy.csv") %>%
 # 
 # setwd("C:/Users/Owner/Documents/NTL_Martinez/NTL")
 
-ntl <- read_csv("data/ntl.csv")
+# ntl <- read_csv("data/ntl.csv")
+# df_ntl <- ntl %>% 
+#   filter(between(year, 1992, 2013)) %>% 
+#   select(-c("gdp14_growth","cons_gdp"))
+
+ntl <- stata %>% 
+  select("countryname", "year", "dn13_growth", "gdp14_growth", "lndn13", "gdp14_growth")
+
+# df_ntl <- ntl %>% 
+#   filter(between(year, 1992, 2013)) %>% 
+#   select(-c("gdp14_growth","cons_gdp"))
+
 df_ntl <- ntl %>% 
-  filter(between(year, 1992, 2013)) %>% 
-  select(-c("gdp14_growth","cons_gdp"))
+  filter(between(year, 1992, 2013))
 
 df_gdp  <- df_gdp %>% 
   rename("country" = `Country Name`) %>% 
@@ -84,17 +98,27 @@ df <- left_join(df_fiw_binary, df_gdp, by = c("country", "year")) %>%
   select(-Cl, -Pr) %>% 
   mutate(logGDP = log(GDP)) %>% 
   group_by(country) %>% 
-  mutate(GDP_growth = logGDP - dplyr::lag(logGDP, 1)) %>% 
-  mutate(ntl_growth = lndn13 - dplyr::lag(lndn13, 1))
+  mutate(GDP_growth = logGDP - dplyr::lag(logGDP, 1)) 
+ # mutate(ntl_growth = lndn13 - dplyr::lag(lndn13, 1))
 
-df2 <- df %>% 
+df3 <- left_join(df_fiw_binary, df_gdp, by = c("country", "year")) %>% 
+  left_join(df_fiw, by = c("country", "year")) %>% 
+  left_join(df_ntl, by = c("country", "year")) %>% 
+  select(-Cl, -Pr) %>% 
+  mutate(logGDP = log(GDP)) %>% 
+  group_by(country) %>% 
+  mutate(GDP_growth = logGDP - dplyr::lag(logGDP, 1)) 
+
+df2 <- df3 %>% 
   group_by(country) %>% 
   mutate(GDP_growth_avg = mean(GDP_growth, na.rm = TRUE)) %>% 
-  mutate(ntl_growth_avg = mean(ntl_growth, na.rm = TRUE)) %>% 
-  filter(year == 2013)
+  mutate(ntl_growth_avg = mean(dn13_growth, na.rm = TRUE)) %>% 
+  filter(year == 2010) 
+
 
 write.csv(df,"data/repdata.csv",row.names = F)
 write.csv(df2,"data/repdata_ave.csv",row.names = F)
+
 
 
 # 可視化
@@ -102,5 +126,38 @@ write.csv(df2,"data/repdata_ave.csv",row.names = F)
 # scale_shape_manual(values = c(0,2))
 
 ggplot(df2, aes(x = ntl_growth_avg, y = GDP_growth_avg, shape = as.factor(democracy)))+
+  scale_x_continuous(limits = c(-0.3,0.3))+
   scale_shape_manual(values = c(0,2))+
   geom_point()
+
+stata %>% select(abdn13)
+
+ggplot(df, aes(x = dn13_growth, y = gdp14_growth, shape = as.factor(democracy), group = country))+
+  scale_shape_manual(values = c(0,2))+
+  geom_point()
+
+# 試しにafgの平均とってみる
+df_afg <- df %>% 
+  filter(country == "Afghanistan") %>% 
+  select(year, dn13_growth, lndn13)
+#meanとずれてないか確認
+(df_afg$lndn13[22] - df_afg$lndn13[1])/22
+mean(df_afg$dn13_growth, na.rm = T)
+(exp(df_afg$lndn13[2]) - exp(df_afg$lndn13[1]))/exp(df_afg$lndn13[1])
+
+#Table1 fixed effect
+library("plm")
+p_4 <- pdata.frame(df, index= c("country", "year"))
+fe_4 <- plm(logGDP ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = p_4, model = "within")
+summary(fe_4)
+
+summary(df)
+stata2 <- stata %>% 
+  select("countryname","year","lndn13", "fiw", "lngdp14") %>% 
+  filter(year >= 1992 & year<=2013)
+
+summary(stata2)
+
+#- pdata.frame(stata, index= c("countryname", "year"))
+fe_4_stata <- plm(lngdp14 ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+summary(fe_4_stata)
