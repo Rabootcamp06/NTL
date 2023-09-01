@@ -246,7 +246,8 @@ models <- list("model1" = fe_1_stata,
 screenreg(models, stars = NULL)
 htmlreg(models, stars = NULL)
 
-
+#テーブル作成のコード
+#ここに貼って使う(https://onlinehtmleditor.dev/)
 res1 <- coeftest(fe_1_stata, vcov = vcovHC)
 res2 <- coeftest(fe_2_stata, vcov = vcovHC)
 res3 <- coeftest(fe_3_stata, vcov = vcovHC)
