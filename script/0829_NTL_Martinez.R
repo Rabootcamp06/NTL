@@ -136,6 +136,7 @@ ggplot(df, aes(x = dn13_growth, y = gdp14_growth, shape = as.factor(democracy), 
   scale_shape_manual(values = c(0,2))+
   geom_point()
 
+##　どのデータ？
 # 試しにafgの平均とってみる
 df_afg <- df %>% 
   filter(country == "Afghanistan") %>% 
@@ -159,27 +160,82 @@ stata2 <- stata %>%
 summary(stata2)
 
 #- pdata.frame(stata, index= c("countryname", "year"))
+# Table1 regression
 stata1 <- stata %>% 
   select("countryname","year","lngdp14","lndn13","fiw") %>%
   drop_na(fiw)
 
 
-fe_4_stata <- plm(lngdp14 ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+fe_4_stata <- plm(lngdp14 ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = stata, model = "within", effect = "twoways",index= c("countryname", "year"))
 summary(fe_4_stata)
 
-fe_3_stata <- plm(lngdp14 ~ lndn13 + fiw + lndn13*fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+fe_3_stata <- plm(lngdp14 ~ lndn13 + fiw + lndn13*fiw, data = stata, model = "within", effect = "twoways",index= c("countryname", "year"))
 summary(fe_3_stata)
 
-fe_2_stata <- plm(lngdp14 ~ lndn13 + fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+fe_2_stata <- plm(lngdp14 ~ lndn13 + fiw, data = stata, model = "within", effect = "twoways",index= c("countryname", "year"))
 summary(fe_2_stata)
 
 fe_1_stata <- plm(lngdp14 ~ lndn13 , data = stata1, model = "within", effect = "twoways",index= c("countryname", "year"))
 summary(fe_1_stata)
 
-?coeftest
+fe_5_stata <- plm(lngdp14 ~ lndn13 + Dpfree + Dnfree + lndn13*Dpfree + lndn13*Dnfree, data = stata, model = "within", effect = "twoways",index= c("countryname", "year"))
+summary(fe_5_stata)
+
+fe_6_stata <- plm(lngdp14 ~ lndn13 + autocracyFH + autocracyFH * lndn13, data = stata, model = "within", effect = "twoways",index= c("countryname", "year"))
+summary(fe_6_stata)
+
+#自分たちのデータでtable1用データ生成
+stata_col7 <- stata %>% 
+  filter(year == 1992 | year == 1993 | year == 2012 | year == 2013) %>% 
+  select(countryname, lndn13, lngdp14, fiw, year) %>% 
+  mutate(yeard = ifelse(year == 1992 | year == 1993, 0, 1)) %>% 
+  group_by(countryname, yeard) %>% 
+  mutate(lndn13_av = mean(lndn13,na.rm = T), lngdp14_av = mean(lngdp14,na.rm = T), fiw_av = mean(fiw,na.rm = T)) %>% 
+  filter(year == 1992 | year == 2012) %>% 
+  group_by(countryname) %>%
+  mutate(ntl = mean(lndn13_av), gdp = mean(lngdp14_av), demo = mean(fiw_av)) %>%
+  filter(!(is.na(ntl) | is.na(gdp) | is.na(demo)))
+  # filter(!(is.na(lndn13_av) | is.na(lngdp14_av) | is.na(fiw_av)))
+
+#long run dataを利用してデータ生成
+stata_lr <- stata %>% 
+  select("countryname", "year", "lndn13_lr", "lngdp14_lr", "fiw_lr") %>% 
+  filter(year == 1992 | year == 2012) %>% 
+  group_by(countryname) %>%
+  mutate(ntl = mean(lndn13_lr), gdp = mean(lngdp14_lr), demo = mean(fiw_lr)) %>%
+  filter(!(is.na(ntl) | is.na(gdp) | is.na(demo)))
+
+fe_7_stata <- plm(lngdp14_lr~ lndn13_lr + fiw_lr + I(fiw_lr^2) + lndn13_lr * fiw_lr, data = stata_lr, model = "within", effect = "twoways",index= c("countryname", "year"))
+summary(fe_7_stata)
+
+# modelsummaryとstergazerとtexregは失敗：苦闘
 library(lmtest)
 library(sandwich)
-coeftest(stata, df= Inf, vcov = vcovHC(fe_1_stata,type = "HC0") )
+res = list()
+res <- c(res, coeftest(fe_1_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_2_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_3_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_4_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_5_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_6_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_7_stata, vcov = vcovHC))
+library(texreg)
+library(modelsummary)
+msummary(res, "latex")
+screenreg(res[[1]], stars = NULL)
+
+#編集前
+res = list()
+res <- c(res, coeftest(fe_1_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_2_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_3_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_4_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_5_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_6_stata, vcov = vcovHC))
+res <- c(res, coeftest(fe_7_stata, vcov = vcovHC))
+library(texreg)
+screenreg(res[[1]], stars = NULL)
+
 
 stata %>% 
   filter(dn13_growth >= -0.3 & dn13_growth <= 0.5) %>% 
@@ -193,7 +249,37 @@ ggplot(aes(x = dn13_growth, y = gdp14_growth,    shape = as.factor(autocracyFH))
 
 stata_arranged <- stata %>%
   group_by(autocracyFH) %>% 
-  arrange(dn13_growth) %>%
-  mutate(bin = cut_number(row_number(), n=20))
+  arrange(dn13_growth) %>% 
+  mutate(bin = cut_number(row_number(), n = 20))
 
-n <- nrow(stata_arranged)
+n_auto <- stata %>% 
+  filter(autocracyFH == 0) %>% 
+  drop_na("dn13_growth", "gdp14_growth") %>% 
+  arrange(dn13_growth) %>% 
+  mutate(bin = cut_number(row_number(), n = 20))
+
+n_demo <- stata %>% 
+  filter(autocracyFH == 1) %>% 
+  drop_na("dn13_growth", "gdp14_growth") %>% 
+  arrange(dn13_growth) %>% 
+  mutate(bin = cut_number(row_number(), n = 20))
+
+demo_bin2 <- n_auto %>% 
+  group_by(bin) %>% 
+  summarise(mean_gdp = mean(gdp14_growth, na.rm = TRUE),
+            mean_dn = mean(dn13_growth, na.rm = TRUE)) %>% 
+  mutate(auto = 0)
+
+demo_bin <- n_demo %>% 
+  group_by(bin) %>% 
+  summarise(mean_gdp = mean(gdp14_growth, na.rm = TRUE),
+            mean_dn = mean(dn13_growth, na.rm = TRUE)) %>% 
+  mutate(auto = 1)
+
+demo_bin_bind <- rbind(demo_bin, demo_bin2)
+
+ggplot(demo_bin_bind, aes(x = mean_dn, y = mean_gdp, shape = as.factor(auto)))+
+  scale_shape_manual(values = c(1,2))+
+  scale_x_continuous(limits = c(-0.3,0.4))+
+  scale_y_continuous(limits = c(0.02,0.07))+
+  geom_point()
