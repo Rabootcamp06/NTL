@@ -1,4 +1,4 @@
-install.packages("haven")
+# install.packages("haven")
 library(tidyverse)
 library(haven)
 
@@ -146,7 +146,7 @@ mean(df_afg$dn13_growth, na.rm = T)
 (exp(df_afg$lndn13[2]) - exp(df_afg$lndn13[1]))/exp(df_afg$lndn13[1])
 
 #Table1 fixed effect
-library("plm")
+library(plm)
 p_4 <- pdata.frame(df, index= c("country", "year"))
 fe_4 <- plm(logGDP ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = p_4, model = "within")
 summary(fe_4)
@@ -159,5 +159,41 @@ stata2 <- stata %>%
 summary(stata2)
 
 #- pdata.frame(stata, index= c("countryname", "year"))
+stata1 <- stata %>% 
+  select("countryname","year","lngdp14","lndn13","fiw") %>%
+  drop_na(fiw)
+
+
 fe_4_stata <- plm(lngdp14 ~ lndn13 + fiw + I(fiw^2) + lndn13*fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
 summary(fe_4_stata)
+
+fe_3_stata <- plm(lngdp14 ~ lndn13 + fiw + lndn13*fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+summary(fe_3_stata)
+
+fe_2_stata <- plm(lngdp14 ~ lndn13 + fiw, data = stata, model = "within", effect = "twoway",index= c("countryname", "year"))
+summary(fe_2_stata)
+
+fe_1_stata <- plm(lngdp14 ~ lndn13 , data = stata1, model = "within", effect = "twoways",index= c("countryname", "year"))
+summary(fe_1_stata)
+
+?coeftest
+library(lmtest)
+library(sandwich)
+coeftest(stata, df= Inf, vcov = vcovHC(fe_1_stata,type = "HC0") )
+
+stata %>% 
+  filter(dn13_growth >= -0.3 & dn13_growth <= 0.5) %>% 
+  drop_na(autocracyFH) %>% 
+
+ggplot(aes(x = dn13_growth, y = gdp14_growth,    shape = as.factor(autocracyFH)))+
+  # scale_shape_manual(values = c(0,2))+
+  geom_point()
+
+
+
+stata_arranged <- stata %>%
+  group_by(autocracyFH) %>% 
+  arrange(dn13_growth) %>%
+  mutate(bin = cut_number(row_number(), n=20))
+
+n <- nrow(stata_arranged)
