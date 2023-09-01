@@ -225,17 +225,44 @@ msummary(res, "latex")
 screenreg(res[[1]], stars = NULL)
 
 #編集前
-res = list()
-res <- c(res, coeftest(fe_1_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_2_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_3_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_4_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_5_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_6_stata, vcov = vcovHC))
-res <- c(res, coeftest(fe_7_stata, vcov = vcovHC))
+#res = list()
+#res <- c(res, fe_1_stata)
+#res <- c(res, fe_2_stata)   
+#res <- c(res, fe_3_stata)
+#res <- c(res, fe_4_stata)
+#res <- c(res, fe_5_stata)
+#res <- c(res, fe_6_stata)
+#res <- c(res, fe_7_stata)
 library(texreg)
-screenreg(res[[1]], stars = NULL)
+#screenreg(res[[1]], stars = NULL)
 
+models <- list("model1" = fe_1_stata,
+               "model2" = fe_2_stata,
+               "model3" = fe_3_stata,
+               "model4" = fe_4_stata,
+               "model5" = fe_5_stata,
+               "model6" = fe_6_stata,
+               "model7" = fe_7_stata)
+screenreg(models, stars = NULL)
+htmlreg(models, stars = NULL)
+
+
+res1 <- coeftest(fe_1_stata, vcov = vcovHC)
+res2 <- coeftest(fe_2_stata, vcov = vcovHC)
+res3 <- coeftest(fe_3_stata, vcov = vcovHC)
+res4 <- coeftest(fe_4_stata, vcov = vcovHC)
+res5 <- coeftest(fe_5_stata, vcov = vcovHC)
+res6 <- coeftest(fe_6_stata, vcov = vcovHC)
+res7 <- coeftest(fe_7_stata, vcov = vcovHC)
+models2 <- list("model1" = res1,
+               "model2" = res2,
+               "model3" = res3,
+               "model4" = res4,
+               "model5" = res5,
+               "model6" = res6,
+               "model7" = res7)
+screenreg(models2, stars = NULL)
+htmlreg(models2, stars = NULL, digits = 3)
 
 stata %>% 
   filter(dn13_growth >= -0.3 & dn13_growth <= 0.5) %>% 
@@ -295,4 +322,5 @@ ggplot(data = demo_bin_bind, aes(x = mean_dn*100, y = mean_gdp*100, shape = as.f
   #annotate("text", x = 16, y = 9.5, label = "Autocracy") +
   #annotate("text", x = 16, y = 5.5, label = "Democracy") +
   theme_light()
+
 
