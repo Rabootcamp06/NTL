@@ -283,3 +283,16 @@ ggplot(demo_bin_bind, aes(x = mean_dn, y = mean_gdp, shape = as.factor(auto)))+
   scale_x_continuous(limits = c(-0.3,0.4))+
   scale_y_continuous(limits = c(0.02,0.07))+
   geom_point()
+
+ggplot(data = demo_bin_bind, aes(x = mean_dn*100, y = mean_gdp*100, shape = as.factor(auto))) +
+  geom_point(aes(color = as.factor(auto))) +
+  geom_smooth(aes(color = as.factor(auto)), method = lm, linetype = "dashed", se = FALSE) +
+  labs(title = "GDP GROWTH ESTIMATES IN AUTOCRACIES", x = "Growth of Lights Digital Number(%)", y = "GDP growth(%)")+
+  scale_color_hue(name = "", labels = c("0" = "Democracy", "1" ="Autocracy")) +
+  scale_shape_manual(name = NULL, values = c(16, 17), labels = c("Democracy","Autocracy")) +
+  scale_x_continuous(limits = c(-30,40))+
+  scale_y_continuous(limits = c(2,7))+
+  #annotate("text", x = 16, y = 9.5, label = "Autocracy") +
+  #annotate("text", x = 16, y = 5.5, label = "Democracy") +
+  theme_light()
+
