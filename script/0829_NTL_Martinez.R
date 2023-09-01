@@ -323,4 +323,27 @@ ggplot(data = demo_bin_bind, aes(x = mean_dn*100, y = mean_gdp*100, shape = as.f
   #annotate("text", x = 16, y = 5.5, label = "Democracy") +
   theme_light()
 
+# ↓sigmaの計算
 
+stata_sigma <- stata %>% 
+  group_by(countryname) %>% 
+  filter(!(is.na(fiw)|is.na(lndn13)|is.na(lngdp14)))
+
+stata_col7 <- stata %>% 
+  filter(year == 1992 | year == 1993 | year == 2012 | year == 2013) %>% 
+  select(countryname, lndn13, lngdp14, fiw, year) %>% 
+  mutate(yeard = ifelse(year == 1992 | year == 1993, 0, 1)) %>% 
+  group_by(countryname, yeard) %>% 
+  mutate(lndn13_av = mean(lndn13,na.rm = T), lngdp14_av = mean(lngdp14,na.rm = T), fiw_av = mean(fiw,na.rm = T)) %>% 
+  filter(year == 1992 | year == 2012) %>% 
+  group_by(countryname) %>%
+  mutate(ntl = mean(lndn13_av), gdp = mean(lngdp14_av), demo = mean(fiw_av)) %>%
+  filter(!(is.na(ntl) | is.na(gdp) | is.na(demo)))
+
+sigma_width_col7 <- quantile(stata_col7$fiw, 0.75, na.rm = T) - quantile(stata_col7$fiw, 0.25, na.rm = T)
+
+fe_3_stata$coefficients[3]/fe_3_stata$coefficients[1]*sigma_width
+fe_4_stata$coefficients[4]/fe_4_stata$coefficients[1]*sigma_width
+fe_5_stata$coefficients[5]/fe_5_stata$coefficients[1]
+fe_6_stata$coefficients[3]/fe_6_stata$coefficients[1]
+fe_7_stata$coefficients[4]/fe_7_stata$coefficients[1]*sigma_width_col7
