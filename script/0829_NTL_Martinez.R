@@ -246,24 +246,7 @@ models <- list("model1" = fe_1_stata,
 screenreg(models, stars = NULL)
 htmlreg(models, stars = NULL)
 
-#テーブル作成のコード
-#ここに貼って使う(https://onlinehtmleditor.dev/)
-res1 <- coeftest(fe_1_stata, vcov = vcovHC)
-res2 <- coeftest(fe_2_stata, vcov = vcovHC)
-res3 <- coeftest(fe_3_stata, vcov = vcovHC)
-res4 <- coeftest(fe_4_stata, vcov = vcovHC)
-res5 <- coeftest(fe_5_stata, vcov = vcovHC)
-res6 <- coeftest(fe_6_stata, vcov = vcovHC)
-res7 <- coeftest(fe_7_stata, vcov = vcovHC)
-models2 <- list("model1" = res1,
-               "model2" = res2,
-               "model3" = res3,
-               "model4" = res4,
-               "model5" = res5,
-               "model6" = res6,
-               "model7" = res7)
-screenreg(models2, stars = NULL)
-htmlreg(models2, stars = NULL, digits = 3)
+
 
 stata %>% 
   filter(dn13_growth >= -0.3 & dn13_growth <= 0.5) %>% 
@@ -310,6 +293,8 @@ ggplot(demo_bin_bind, aes(x = mean_dn, y = mean_gdp, shape = as.factor(auto)))+
   scale_shape_manual(values = c(1,2))+
   scale_x_continuous(limits = c(-0.3,0.4))+
   scale_y_continuous(limits = c(0.02,0.07))+
+  labs(title = "GDP GROWTH ESTIMATES IN AUTOCRACIES", x = "Growth of Lights Digital Number(%)", y = "GDP growth(%)")+
+  scale_color_hue(name = "", labels = c("0" = "Democracy", "1" ="Autocracy"))+
   geom_point()
 
 ggplot(data = demo_bin_bind, aes(x = mean_dn*100, y = mean_gdp*100, shape = as.factor(auto))) +
@@ -341,10 +326,35 @@ stata_col7 <- stata %>%
   mutate(ntl = mean(lndn13_av), gdp = mean(lngdp14_av), demo = mean(fiw_av)) %>%
   filter(!(is.na(ntl) | is.na(gdp) | is.na(demo)))
 
+sigma_width <- quantile(stata_sigma$fiw, 0.75, na.rm = T) - quantile(stata_sigma$fiw, 0.25, na.rm = T)
 sigma_width_col7 <- quantile(stata_col7$fiw, 0.75, na.rm = T) - quantile(stata_col7$fiw, 0.25, na.rm = T)
 
-fe_3_stata$coefficients[3]/fe_3_stata$coefficients[1]*sigma_width
-fe_4_stata$coefficients[4]/fe_4_stata$coefficients[1]*sigma_width
-fe_5_stata$coefficients[5]/fe_5_stata$coefficients[1]
-fe_6_stata$coefficients[3]/fe_6_stata$coefficients[1]
-fe_7_stata$coefficients[4]/fe_7_stata$coefficients[1]*sigma_width_col7
+sigma1 <- fe_3_stata$coefficients[3]/fe_3_stata$coefficients[1]*sigma_width
+sigma2 <- fe_4_stata$coefficients[4]/fe_4_stata$coefficients[1]*sigma_width
+sigma3 <- fe_5_stata$coefficients[5]/fe_5_stata$coefficients[1]
+sigma4 <- fe_6_stata$coefficients[3]/fe_6_stata$coefficients[1]
+sigma5 <- fe_7_stata$coefficients[4]/fe_7_stata$coefficients[1]*sigma_width_col7
+
+#テーブル作成のコード
+#ここに貼って使う(https://onlinehtmleditor.dev/)
+res1 <- coeftest(fe_1_stata, vcov = vcovHC)
+res2 <- coeftest(fe_2_stata, vcov = vcovHC)
+res3 <- coeftest(fe_3_stata, vcov = vcovHC)
+res4 <- coeftest(fe_4_stata, vcov = vcovHC)
+res5 <- coeftest(fe_5_stata, vcov = vcovHC)
+res6 <- coeftest(fe_6_stata, vcov = vcovHC)
+res7 <- coeftest(fe_7_stata, vcov = vcovHC)
+models2 <- list("model1" = res1
+                "model2" = res2,
+                "model3" = res3,
+                "model4" = res4,
+                "model5" = res5,
+                "model6" = res6,
+                "model7" = res7,
+screenreg(models2, stars = NULL)
+htmlreg(models2, stars = NULL, digits = 3)
+sigma1
+sigma2
+sigma3
+sigma4
+sigma5
